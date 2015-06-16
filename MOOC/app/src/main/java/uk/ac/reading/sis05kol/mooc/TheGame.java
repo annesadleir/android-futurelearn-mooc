@@ -7,18 +7,15 @@ import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 
 import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
-import java.util.Set;
 
 public class TheGame extends GameThread {
 
-    public static final int NUMBER_OF_BALLS = 2;
+    public static final int NUMBER_OF_BALLS = 1;
 
-    private int ballsInPlay = NUMBER_OF_BALLS;
+    private int ballsInPlay;
 
-    private Set<GameBall> movingBalls = new HashSet<>();
+    private List<GameBall> movingBalls;
 
     private GameBall paddle = new GameBall();
 
@@ -30,8 +27,12 @@ public class TheGame extends GameThread {
         //House keeping
         super(gameView);
 
-        GameBall.setSmallWhiteBall(BitmapFactory.decodeResource(gameView.getContext().getResources(),
+        movingBalls = new ArrayList<>();
+        GameBall gameBall = new GameBall();
+        gameBall.setBitmap(BitmapFactory.decodeResource(gameView.getContext().getResources(),
                 R.drawable.small_white_ball));
+        movingBalls.add(gameBall);
+
 
         paddle.setBitmap(BitmapFactory.decodeResource(gameView.getContext().getResources(),
                 R.drawable.yellow_ball));
@@ -45,9 +46,10 @@ public class TheGame extends GameThread {
     public void setupBeginning() {
 
         ballsInPlay = NUMBER_OF_BALLS;
-        movingBalls = new HashSet<>();
+        GameBall ballTemplate = movingBalls.get(0);
+        movingBalls = new ArrayList<>();
         for (int counter = 0; counter < NUMBER_OF_BALLS; counter++) {
-            GameBall movingBall = GameBall.createSmallWhiteBall(mCanvasWidth, mCanvasHeight);
+            GameBall movingBall = ballTemplate.spawnNewBall(mCanvasWidth, mCanvasHeight);
             movingBalls.add(movingBall);
         }
 
@@ -93,7 +95,6 @@ public class TheGame extends GameThread {
 		If the ball moves too fast try and decrease 70f
 		If the ball moves too slow try and increase 70f
 		 */
-
         paddle.moveThroughX(xDirection);
 
     }
@@ -104,7 +105,7 @@ public class TheGame extends GameThread {
     protected void updateGame(float secondsElapsed) {
 
         paddle.updatePosition(secondsElapsed);
-        paddle.bounceOnWidthEdges(mCanvasWidth);
+        paddle.bounceOnSides(mCanvasWidth);
 
         List<GameBall> newGameBalls = new ArrayList<>();
 
@@ -112,7 +113,7 @@ public class TheGame extends GameThread {
         for (GameBall movingBall : movingBalls) {
             if (movingBall.isInPlay()) {
                 movingBall.updatePosition(secondsElapsed);
-                movingBall.bounceOnWidthEdges(mCanvasWidth);
+                movingBall.bounceOnSides(mCanvasWidth);
                 movingBall.bounceOnTopEdge();
 
                 if (paddle.inCollisionWith(movingBall)) {
@@ -122,12 +123,12 @@ public class TheGame extends GameThread {
 
                 if (target.inCollisionWith(movingBall)) {
                     movingBall.bounceOffStationaryBall(target);
-                    newGameBalls.add(GameBall.createSmallWhiteBall(mCanvasWidth, mCanvasHeight));
+                    newGameBalls.add(movingBall.spawnNewBall(mCanvasWidth, mCanvasHeight));
                     ballsInPlay++;
                 }
 
                 if (movingBall.getyPosition() - movingBall.getRadius() >= mCanvasHeight) {
-                    movingBall.setInPlay(false);
+                    movingBall.outOfPlay();
                     ballsInPlay--;
                 }
             }
